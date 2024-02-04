@@ -224,7 +224,7 @@ class CoolDebug:
         self.html_log = html_log
         self.my_timezone = my_timezone
         if html_log != False:
-            file_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'log.html')
+            file_path = os.path.join(os.path.abspath(os.path.dirname((sys.argv[0]))), 'log.html')
             if not os.path.exists(file_path):
                 with open(file_path, "w+", encoding="utf-8") as html_file:
                     html_file.write(html_content)
