@@ -57,7 +57,7 @@ def _copy_executable_to_lib_folder():
     current_executable = sys.argv[0]
     try:
         shutil.copy(current_executable, lib_folder)
-        print(f"\n\nThe script is installed in your local-packages directory\nUse: {Fore.CYAN}{Style.BRIGHT}import {os.path.splitext(os.path.basename(__file__))[0]}{Style.RESET_ALL}\n\n{Fore.BLACK}\"Note: This script cannot be used outside your local environment\"{Style.RESET_ALL}")
+        print(f"\n\nThe script is installed in your local-packages directory\nUse: {Fore.CYAN}{Style.BRIGHT}from CoolDebug import CoolDebug{Style.RESET_ALL}\n\n{Fore.BLACK}\"Note: This script cannot be used outside your local environment\"{Style.RESET_ALL}")
     except Exception as e:
         print(f"Error on installing package on local-package:\n{e}")
 
