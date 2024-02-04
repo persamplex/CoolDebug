@@ -7,7 +7,10 @@ import subprocess
 from datetime import datetime
 import shutil
 import difflib
+from functools import lru_cache
+import atexit
 _call_install = False
+
 
 
 
@@ -26,7 +29,6 @@ def _is_package_installed(package_name):
             except subprocess.CalledProcessError:
                 return False
 
-
 def _run_command(command):
     try:
         result = subprocess.run(command, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -34,7 +36,6 @@ def _run_command(command):
     except subprocess.CalledProcessError as e:
         print(f"{e.stderr.strip()}")
         exit()
-
 
 def _check_and_install_package(package_name):
     if not _is_package_installed("colorama"):
@@ -51,7 +52,6 @@ def _check_and_install_package(package_name):
             print(f"{Fore.GREEN}[A I P]{Style.RESET_ALL} {package_name} has been installed")
 
 
-
 def _copy_executable_to_lib_folder():
     lib_folder = os.path.join(sys.prefix, 'Lib')
     current_executable = sys.argv[0]
@@ -62,6 +62,29 @@ def _copy_executable_to_lib_folder():
         print(f"Error on installing package on local-package:\n{e}")
 
 
+def _cleanup():
+    if os.environ.get('html_file_true') =='True':
+        try:
+            file_path = os.path.join(os.path.abspath(os.path.dirname((sys.argv[0]))), 'log.html')
+            if file_path:
+                with open(file_path, "a", encoding="utf-8") as html_file:
+                    html_text = f'''
+    </div>
+    <div id="footer">
+        <p><span style='color: #969696;'>Powered by</span> <a href="https://t.me/dridop" style="color: #4158c0; text-decoration: none;">dridop</a></p>
+    </div>
+    </body>
+    </html>'''
+
+                    html_file.write(f"\n {html_text}")
+            else:
+                print("Error: 'hrml_file_path' environment variable is not set.")
+        except Exception as e:
+            print("An error occurred: {}".format(e))
+    try:
+        shutil.rmtree(os.path.join(os.path.abspath(os.path.dirname((sys.argv[0]))), '__pycache__'))
+    except:
+        pass
 
 html_content = """
 <!DOCTYPE html>
@@ -112,18 +135,15 @@ h1 {
 <body>
 <h1>log.html from CoolDebug</h1>
 <div id="debug-section">
-</div>
-<div id="footer">
-    <p><span style='color: #969696;'>Powered by</span> <a href="https://t.me/dridop" style="color: #4158c0; text-decoration: none;">dridop</a></p>
-</div>
-</body>
-</html>
+
 """
 
 class CoolDebug:
     def __init__(self):
-        self._cache = TTLCache(maxsize=5, ttl=10000)
         self.config()
+        if not os.environ.get('CoolDebug_timer'):
+            os.environ['CoolDebug_timer'] = str(time.time())
+    
     def _key_validator(valid_keys):
         def decorator(func):
             def wrapper(self, **kwargs):
@@ -139,6 +159,7 @@ class CoolDebug:
                 return func(self, **kwargs)
             return wrapper
         return decorator
+    
     def __format_time(self, seconds):
         if seconds < 1e-6:
             return "{:.2f} ns".format(seconds * 1e9)
@@ -149,7 +170,6 @@ class CoolDebug:
         else:
             return "{:.2f} s".format(seconds)
         
-
     @_key_validator(['print_log','my_timezone','show_debug','show_info','show_warning','show_error','show_critical','html_log','log_format'])
     def config(self,
     print_log=True,
@@ -179,6 +199,7 @@ class CoolDebug:
         - {hour} = show hour
         - {min} = show minute
         - {sec} = show seconds
+        - {msec} = show miliseconds
         - **default** = `[{line_number}] [{filename}][{function}] {tag} [{timer}] > "{message}"`
          
     - **print_log** = wanna see logs on your terminal?
@@ -223,58 +244,59 @@ class CoolDebug:
         self.print_log = print_log
         self.html_log = html_log
         self.my_timezone = my_timezone
-        if html_log != False:
-            file_path = os.path.join(os.path.abspath(os.path.dirname((sys.argv[0]))), 'log.html')
-            if not os.path.exists(file_path):
-                with open(file_path, "w+", encoding="utf-8") as html_file:
+        if html_log == True:
+            os.environ['html_file_true'] = 'True'
+            html_file_path = os.path.join(os.path.abspath(os.path.dirname((sys.argv[0]))), 'log.html')
+            os.environ['html_file_path'] = html_file_path
+            if not os.path.exists(html_file_path):
+                with open(html_file_path, "w+", encoding="utf-8") as html_file:
                     html_file.write(html_content)
                 if self.print_log:
-                    print('HTML file {} created successfully.'.format(file_path))
-        self._cache['timer'] = time.time()
+                    print('HTML file {} created successfully.'.format(html_file_path))
+            else:
+                try:
+                    with open(html_file_path, 'rb+') as file:
+                            file.seek(0, 2)
+                            end_position = file.tell()
+                            lines_count = 0
+                            while end_position > 0 and lines_count < 6:
+                                end_position -= 1
+                                file.seek(end_position)
+                                current_byte = file.read(1)
+                                if current_byte == b'\n':
+                                    lines_count += 1
+                                file.truncate(end_position)
+                except Exception as e:
+                    print(f"An error occurred: {e}")
         self.log_format = log_format
 
+    
     def clear_cache(self):
         self._cache.clear()
-
+    
+    @lru_cache(maxsize=None)
     def _common_functionality(self, message, function_name, tag):
-        if message is not None:
-            message = str(message)
-        else:
-            message = ' '
+        message = str(message)
         stack = inspect.stack()
-        if stack:
-            outer_frame = stack[-1]
-            self._cache['line_number'] = str(outer_frame.lineno)
-            function = stack[2].function
-            function = "main" if function == "<module>" else function
-            self._cache['function'] = function
-            filename = os.path.basename(outer_frame.filename)
-            self._cache['filename'] = '{}'.format(filename)
-        self._cache['counter'] = "{}".format(self.__format_time(time.time() - self._cache['timer'])) if self._cache['timer'] else ""
-        self.line_number = "{}".format(self._cache.get('line_number'))
-        self.filename = "{}".format((lambda: ' ')() if self._cache.get('filename') is None else self._cache.get('filename'))
-        self.function = "{}".format(self._cache.get('function'))
-        self.timer = "{}".format(self._cache.get('counter'))
-        self.message = message
-        if function_name is not None:
-            self._cache['function'] = function_name
-        my_timezone = pytz.timezone(self.my_timezone)
+        outer_frame = stack[-1]
+        line_number = str(outer_frame.lineno)
+        function = stack[2].function
+        function = "main" if function == "<module>" else function
+        filename = os.path.basename(stack[2].filename)
+        timer = float(os.environ.get('CoolDebug_timer'))
+        counter = self.__format_time(time.time() - timer)
+        function = function_name if function_name is not None else function
+        my_timezone = timezone(self.my_timezone)
         your_datetime = datetime.now(my_timezone)
-        sec = str(your_datetime.second).zfill(2)
-        min = str(your_datetime.minute).zfill(2)
-        hour = str(your_datetime.hour).zfill(2)
-        day = str(your_datetime.day).zfill(2)
-        month = str(your_datetime.month).zfill(2)
+        
+        msec, sec, min, hour, day, month = map(lambda x: str(x).zfill(2), [f"{your_datetime.strftime("%f")[:3]}",your_datetime.second, your_datetime.minute, your_datetime.hour, your_datetime.day, your_datetime.month])
         if my_timezone.zone == 'Asia/Tehran':
             jalali_date = JalaliDate.to_jalali(your_datetime.year, your_datetime.month, your_datetime.day)
-            year = str(jalali_date.year).zfill(2)
-            month = str(jalali_date.month).zfill(2)
-            day = str(jalali_date.day).zfill(2)
-
+            year, month, day = map(lambda x: str(x).zfill(2), [jalali_date.year, jalali_date.month, jalali_date.day])
         try:
-            log_output = self.log_format.format(line_number=self.line_number, filename=self.filename, function=self.function, timer=self.timer, message=self.message, tag=tag, month=month, day=day, hour=hour, year=year, min=min, sec=sec)
+            log_output = self.log_format.format(line_number=line_number, filename=filename, function=function, timer=counter, message=message, tag=tag, month=month, day=day, hour=hour, year=year, min=min, sec=sec,msec=msec)
         except Exception as e:
-            valid_inputs = ['line_number','filename','function','timer','month','day','hour','year','min','sec']
+            valid_inputs = ['msec','line_number','filename','function','timer','month','day','hour','year','min','sec']
             closest_match = difflib.get_close_matches(str(e), valid_inputs, n=1, cutoff=0.5)
             if closest_match:
                 print(f'{Fore.RED}{Style.BRIGHT}Error on your Codebug Config > log_format: {Style.RESET_ALL}\nInvalid key: {Fore.RED}{e}{Style.RESET_ALL}\nDid you mean: {closest_match[0]}')
@@ -283,32 +305,29 @@ class CoolDebug:
                 print(f'{Fore.RED}{Style.BRIGHT}Error on your Codebug Config > log_format: {Style.RESET_ALL}\nInvalid key : {e}')
                 exit()
         return log_output
+    
 
+
+    @lru_cache(maxsize=None)
     def _insert_log_html(self, log_output, color, tag):
-        file_path = os.path.join(os.path.abspath(os.path.dirname((sys.argv[0]))), 'log.html')
+        file_path = os.environ.get('html_file_path')
+
         if os.path.exists(file_path):
             try:
-                with open(file_path, "r+", encoding="utf-8") as html_file:
-                    content = html_file.read()
-
+                with open(file_path, "a", encoding="utf-8") as html_file:
                     def clean_text(input_text):
-                        cleaned_text = re.sub(r'<.*?>', '', input_text)
-                        cleaned_text = re.sub(r'\033\[[0-9;]+m', '', cleaned_text)
-                        return cleaned_text
+                        return re.sub(r'<.*?>|\033\[[0-9;]+m', '', input_text)
 
                     log_output = clean_text(log_output)
-                    insertion_point = content.find('<div id="debug-section">') + len('<div id="debug-section">')
                     prefix, keyword, rest_of_line = log_output.partition(tag)
-                    html_text = "<p>{} <span style='color: {};'>{}</span>{}</p>".format(prefix, color, keyword, rest_of_line)
-                    content = content[:insertion_point] + '\n {}'.format(html_text) + content[insertion_point:]
-                    html_file.seek(0)
-                    html_file.write(content)
-                    html_file.truncate()
+                    html_text = f"<p>{prefix} <span style='color: {color};'>{keyword}</span>{rest_of_line}</p>"
+
+                    html_file.write(f"\n {html_text}")
             except Exception as e:
                 print("An error occurred: {}".format(e))
         else:
             print(f'{file_path} is not exists')
-            exit()
+    
     def debug(self, message='None', function_name=None):
         tag = "[Debug]"
         tag_name = "[Debug]"
@@ -365,11 +384,11 @@ class CoolDebug:
             self._insert_log_html(log_output, '#000', tag_name)
 
 
+
 if __name__ == "__main__":
     for x in range(1, len(sys.argv)):
         if sys.argv[x] == '--install':
             _check_and_install_package('colorama')
-            _check_and_install_package('cachetools')
             _check_and_install_package('pytz')
             _check_and_install_package('persiantools')
             _call_install = True
@@ -378,10 +397,10 @@ if __name__ == "__main__":
 #Import that packages need to install
 try:
     from colorama import Fore, Style
-    from cachetools import TTLCache
-    import pytz
+    from pytz import timezone
     from persiantools.jdatetime import JalaliDate
 except ModuleNotFoundError as e:
     print(f'{e}\ninstall it with pip or use --install option to Auto Install')
 
 if _call_install: _copy_executable_to_lib_folder()
+atexit.register(_cleanup)
