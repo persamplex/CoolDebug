@@ -5,7 +5,11 @@ import re
 import inspect
 import subprocess
 from datetime import datetime
-        
+import shutil
+import difflib
+_call_install = False
+
+
 
 def _is_package_installed(package_name):
     try:
@@ -40,26 +44,22 @@ def _check_and_install_package(package_name):
         # print(f"{Fore.GREEN}[-]{Style.RESET_ALL}{package_name} is already installed")
         pass
     else:
-        print(f"{Fore.BLUE}[Auto Install Packages]{Style.RESET_ALL} installing {package_name}")
+        print(f"{Fore.BLUE}[A I P]{Style.RESET_ALL} installing {package_name}")
         if _run_command([sys.executable, '-m', 'pip', 'install', '--upgrade', package_name]) == None:
-            print(f"{Fore.RED}[Auto Install Packages]{Style.RESET_ALL} {package_name} not installed")
+            print(f"{Fore.RED}[A I P]{Style.RESET_ALL} {package_name} not installed")
         else:
-            print(f"{Fore.GREEN}[Auto Install Packages]{Style.RESET_ALL} {package_name} has been installed")
+            print(f"{Fore.GREEN}[A I P]{Style.RESET_ALL} {package_name} has been installed")
 
 
 
-_check_and_install_package('colorama')
-_check_and_install_package('cachetools')
-_check_and_install_package('pytz')
-_check_and_install_package('persiantools')
-
-
-
-from colorama import Fore, Style
-from cachetools import TTLCache
-import pytz
-from persiantools.jdatetime import JalaliDate
-
+def _copy_executable_to_lib_folder():
+    lib_folder = os.path.join(sys.prefix, 'Lib')
+    current_executable = sys.argv[0]
+    try:
+        shutil.copy(current_executable, lib_folder)
+        print(f"\n\nThe script is installed in your local-packages directory\nUse: {Fore.CYAN}{Style.BRIGHT}import {os.path.splitext(os.path.basename(__file__))[0]}{Style.RESET_ALL}\n\n{Fore.BLACK}\"Note: This script cannot be used outside your local environment\"{Style.RESET_ALL}")
+    except Exception as e:
+        print(f"Error on installing package on local-package:\n{e}")
 
 
 
@@ -122,9 +122,23 @@ h1 {
 
 class CoolDebug:
     def __init__(self):
-        self.cache = TTLCache(maxsize=5, ttl=10000)
+        self._cache = TTLCache(maxsize=5, ttl=10000)
         self.config()
-
+    def _key_validator(valid_keys):
+        def decorator(func):
+            def wrapper(self, **kwargs):
+                for key in kwargs.keys():
+                    if key not in valid_keys:
+                        closest_match = difflib.get_close_matches(key, valid_keys, n=1, cutoff=0.5)
+                        if closest_match:
+                            print(f'{Fore.RED}{Style.BRIGHT}Error on your Codebug Config: {Style.RESET_ALL}\nInvalid key: {Fore.RED}{key}{Style.RESET_ALL}\nDid you mean: {closest_match[0]}')
+                            exit()
+                        else:
+                            print(f'{Fore.RED}{Style.BRIGHT}Error on your Codebug Config: {Style.RESET_ALL}\nInvalid key : {key}')
+                            exit()
+                return func(self, **kwargs)
+            return wrapper
+        return decorator
     def __format_time(self, seconds):
         if seconds < 1e-6:
             return "{:.2f} ns".format(seconds * 1e9)
@@ -134,7 +148,9 @@ class CoolDebug:
             return "{:.2f} ms".format(seconds * 1e3)
         else:
             return "{:.2f} s".format(seconds)
+        
 
+    @_key_validator(['print_log','my_timezone','show_debug','show_info','show_warning','show_error','show_critical','html_log','log_format'])
     def config(self,
     print_log=True,
     my_timezone='Asia/Tehran',
@@ -144,7 +160,7 @@ class CoolDebug:
     show_error=True,
     show_critical=True,
     html_log=False,
-    log_format='[{line_number}] [{filename}][{function}] {tag} [{timer}] > " {message} "'):
+    log_format='[{line_number}] [{filename}][{function}] {tag} [{timer}] > "{message}"'):
         """
 ## config parameters
 - config you debugger as you wish with this parameters, ***`need help or have idea? <https://t.me/dridop>`_***
@@ -163,14 +179,14 @@ class CoolDebug:
         - {hour} = show hour
         - {min} = show minute
         - {sec} = show seconds
-        - **default** = `[{line_number}] [{filename}][{function}] {tag} [{timer}] > " {message} "`
+        - **default** = `[{line_number}] [{filename}][{function}] {tag} [{timer}] > "{message}"`
          
     - **print_log** = wanna see logs on your terminal?
         - default = True
          
 
     - **my_timezone** = custom timezone for showing in your log
-        - default : 'Asia_Tehran'
+        - default : 'Asia/Tehran'
          
     - **html_log** = save your log in the log.html file
         - default : False
@@ -214,13 +230,13 @@ class CoolDebug:
                     html_file.write(html_content)
                 if self.print_log:
                     print('HTML file {} created successfully.'.format(file_path))
-        self.cache['timer'] = time.time()
+        self._cache['timer'] = time.time()
         self.log_format = log_format
 
     def clear_cache(self):
-        self.cache.clear()
+        self._cache.clear()
 
-    def common_functionality(self, message, function_name, tag):
+    def _common_functionality(self, message, function_name, tag):
         if message is not None:
             message = str(message)
         else:
@@ -228,20 +244,20 @@ class CoolDebug:
         stack = inspect.stack()
         if stack:
             outer_frame = stack[-1]
-            self.cache['line_number'] = str(outer_frame.lineno)
-            function = outer_frame.function
-            function = "Main" if function == "<module>" else function
-            self.cache['function'] = function
+            self._cache['line_number'] = str(outer_frame.lineno)
+            function = stack[2].function
+            function = "main" if function == "<module>" else function
+            self._cache['function'] = function
             filename = os.path.basename(outer_frame.filename)
-            self.cache['filename'] = '{}'.format(filename)
-        if function_name is not None:
-            self.cache['function'] = function_name
-        self.cache['counter'] = "{}".format(self.__format_time(time.time() - self.cache['timer'])) if self.cache['timer'] else ""
-        self.line_number = "{}".format(self.cache.get('line_number'))
-        self.filename = "{}".format((lambda: ' ')() if self.cache.get('filename') is None else self.cache.get('filename'))
-        self.function = "{}".format(self.cache.get('function'))
-        self.timer = "{}".format(self.cache.get('counter'))
+            self._cache['filename'] = '{}'.format(filename)
+        self._cache['counter'] = "{}".format(self.__format_time(time.time() - self._cache['timer'])) if self._cache['timer'] else ""
+        self.line_number = "{}".format(self._cache.get('line_number'))
+        self.filename = "{}".format((lambda: ' ')() if self._cache.get('filename') is None else self._cache.get('filename'))
+        self.function = "{}".format(self._cache.get('function'))
+        self.timer = "{}".format(self._cache.get('counter'))
         self.message = message
+        if function_name is not None:
+            self._cache['function'] = function_name
         my_timezone = pytz.timezone(self.my_timezone)
         your_datetime = datetime.now(my_timezone)
         sec = str(your_datetime.second).zfill(2)
@@ -251,17 +267,24 @@ class CoolDebug:
         month = str(your_datetime.month).zfill(2)
         if my_timezone.zone == 'Asia/Tehran':
             jalali_date = JalaliDate.to_jalali(your_datetime.year, your_datetime.month, your_datetime.day)
-            year = jalali_date.year
-        else:
-            year = your_datetime.year
+            year = str(jalali_date.year).zfill(2)
+            month = str(jalali_date.month).zfill(2)
+            day = str(jalali_date.day).zfill(2)
+
         try:
             log_output = self.log_format.format(line_number=self.line_number, filename=self.filename, function=self.function, timer=self.timer, message=self.message, tag=tag, month=month, day=day, hour=hour, year=year, min=min, sec=sec)
         except Exception as e:
-            print('{}{}Error on your Codebug Config: {}\n{}'.format(Fore.RED, Style.BRIGHT, Style.RESET_ALL, e))
-            exit()
+            valid_inputs = ['line_number','filename','function','timer','month','day','hour','year','min','sec']
+            closest_match = difflib.get_close_matches(str(e), valid_inputs, n=1, cutoff=0.5)
+            if closest_match:
+                print(f'{Fore.RED}{Style.BRIGHT}Error on your Codebug Config > log_format: {Style.RESET_ALL}\nInvalid key: {Fore.RED}{e}{Style.RESET_ALL}\nDid you mean: {closest_match[0]}')
+                exit()
+            else:
+                print(f'{Fore.RED}{Style.BRIGHT}Error on your Codebug Config > log_format: {Style.RESET_ALL}\nInvalid key : {e}')
+                exit()
         return log_output
 
-    def __insert_log_html(self, log_output, color, tag):
+    def _insert_log_html(self, log_output, color, tag):
         file_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'log.html')
         if os.path.exists(file_path):
             try:
@@ -286,77 +309,76 @@ class CoolDebug:
     def debug(self, message='None', function_name=None):
         tag = "[Debug]"
         tag_name = "[Debug]"
-        log_output = self.common_functionality(message, function_name, tag)
+        log_output = self._common_functionality(message, function_name, tag)
         if self.print_log != True or self.show_debug != True:
             pass
         else:
             print(log_output)
         if self.html_log:
-            self.__insert_log_html(log_output, '#6e6e6e', tag_name)
+            self._insert_log_html(log_output, '#6e6e6e', tag_name)
 
     def info(self, message='None', function_name=None):
         tag = "{}[Info]{}".format(Fore.GREEN, Style.RESET_ALL)
         tag_name = "[Info]"
-        log_output = self.common_functionality(message, function_name, tag)
+        log_output = self._common_functionality(message, function_name, tag)
         if self.print_log != True or self.show_info != True:
             pass
         else:
             print(log_output)
         if self.html_log:
-            self.__insert_log_html(log_output, '#008080', tag_name)
+            self._insert_log_html(log_output, '#008080', tag_name)
 
     def warning(self, message='None', function_name=None):
         tag = "{}[Warning]{}".format(Fore.YELLOW, Style.RESET_ALL)
         tag_name = "[Warning]"
-        log_output = self.common_functionality(message, function_name, tag)
+        log_output = self._common_functionality(message, function_name, tag)
         if self.print_log != True or self.show_warning != True:
             pass
         else:
             print(log_output)
         if self.html_log:
-            self.__insert_log_html(log_output, '#db9404', tag_name)
+            self._insert_log_html(log_output, '#db9404', tag_name)
 
     def error(self, message='None', function_name=None):
         tag = "{}[Error]{}".format(Fore.RED, Style.RESET_ALL)
         tag_name = "[Error]"
-        log_output = self.common_functionality(message, function_name, tag)
+        log_output = self._common_functionality(message, function_name, tag)
         if self.print_log != True or self.show_error != True:
             pass
         else:
             print(log_output)
         if self.html_log:
-            self.__insert_log_html(log_output, '#db2f04', tag_name)
+            self._insert_log_html(log_output, '#db2f04', tag_name)
 
     def critical(self, message='None', function_name=None):
         tag = "{}{}[CRITICAL]{}".format(Fore.RED, Style.BRIGHT, Style.RESET_ALL)
         tag_name = "[CRITICAL]"
-        log_output = self.common_functionality(message, function_name, tag)
+        log_output = self._common_functionality(message, function_name, tag)
         if self.print_log != True or self.show_critical != True:
             pass
         else:
             print(log_output)
         if self.html_log:
-            self.__insert_log_html(log_output, '#000', tag_name)
+            self._insert_log_html(log_output, '#000', tag_name)
+
 
 if __name__ == "__main__":
-    #Example 
-    show = CoolDebug()
-    show.config(
-            html_log=True,
-            my_timezone='Asia/Tehran',
-            print_log=True,
-            # show_debug=False,
-            # show_info=False,
-            # show_warning=True,
-            # show_error=False,
-            # show_critical=False,
-            log_format='[{year}/{month}/{day} {tag} {hour}:{min}:{sec}] [ {line_number} ][ {function} ][]: {message}')
+    for x in range(1, len(sys.argv)):
+        if sys.argv[x] == '--install':
+            _check_and_install_package('colorama')
+            _check_and_install_package('cachetools')
+            _check_and_install_package('pytz')
+            _check_and_install_package('persiantools')
+            _call_install = True
+            
     
-    show.debug('debug')
-    show.info('info')
-    show.warning('warning')
-    show.error('error')
-    show.critical('critical')
-    time.sleep(1)
-    show.info('i wait for 1 second')
-    # show.clear_cache()
+#Import that packages need to install
+try:
+    from colorama import Fore, Style
+    from cachetools import TTLCache
+    import pytz
+    from persiantools.jdatetime import JalaliDate
+except ModuleNotFoundError as e:
+    print(f'{e}\ninstall it with pip or use --install option to Auto Install')
+
+if _call_install: _copy_executable_to_lib_folder()
