@@ -110,7 +110,7 @@ h1 {
 </style>
 </head>
 <body>
-<h1>log.html from Cologg</h1>
+<h1>log.html from CoolDebug</h1>
 <div id="debug-section">
 </div>
 <div id="footer">
@@ -306,6 +306,9 @@ class CoolDebug:
                     html_file.truncate()
             except Exception as e:
                 print("An error occurred: {}".format(e))
+        else:
+            print(f'{file_path} is not exists')
+            exit()
     def debug(self, message='None', function_name=None):
         tag = "[Debug]"
         tag_name = "[Debug]"
