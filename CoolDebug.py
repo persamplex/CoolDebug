@@ -285,7 +285,7 @@ class CoolDebug:
         return log_output
 
     def _insert_log_html(self, log_output, color, tag):
-        file_path = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'log.html')
+        file_path = os.path.join(os.path.abspath(os.path.dirname((sys.argv[0]))), 'log.html')
         if os.path.exists(file_path):
             try:
                 with open(file_path, "r+", encoding="utf-8") as html_file:
