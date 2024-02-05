@@ -9,6 +9,7 @@ import shutil
 import difflib
 from functools import lru_cache
 import atexit
+
 _call_install = False
 
 
@@ -45,46 +46,76 @@ def _check_and_install_package(package_name):
         # print(f"{Fore.GREEN}[-]{Style.RESET_ALL}{package_name} is already installed")
         pass
     else:
-        print(f"{Fore.BLUE}[A I P]{Style.RESET_ALL} installing {package_name}")
+        print(f"{Fore.BLUE}[AIP]{Style.RESET_ALL} installing {package_name}")
         if _run_command([sys.executable, '-m', 'pip', 'install', '--upgrade', package_name]) == None:
-            print(f"{Fore.RED}[A I P]{Style.RESET_ALL} {package_name} not installed")
+            print(f"{Fore.RED}[AIP]{Style.RESET_ALL} {package_name} not installed")
         else:
-            print(f"{Fore.GREEN}[A I P]{Style.RESET_ALL} {package_name} has been installed")
+            print(f"{Fore.GREEN}[AIP]{Style.RESET_ALL} {package_name} has been installed")
 
 
 def _copy_executable_to_lib_folder():
-    lib_folder = os.path.join(sys.prefix, 'Lib')
-    current_executable = sys.argv[0]
+    command = [sys.executable, '-m', 'pip', 'show', 'pip']
+    
     try:
-        shutil.copy(current_executable, lib_folder)
-        print(f"\n\nThe script is installed in your local-packages directory\nUse: {Fore.CYAN}{Style.BRIGHT}from CoolDebug import CoolDebug{Style.RESET_ALL}\n\n{Fore.BLACK}\"Note: This script cannot be used outside your local environment\"{Style.RESET_ALL}")
+        result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        if result.returncode == 0:
+            location_line = next(line for line in result.stdout.split('\n') if line.startswith('Location:'))
+            pip_location = location_line.split(':', 1)[1].strip()
+        else:
+            print(f"Error: {result.stderr.strip()}")
+            exit()
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        exit()
+
+    current_executable = sys.argv[0]
+    program_name_with_extension = os.path.basename(current_executable)
+    program_name = os.path.splitext(program_name_with_extension)[0]
+    package_folder_path = os.path.join(pip_location, program_name)
+
+    try:
+        os.makedirs(package_folder_path, exist_ok=True)
+        target_file_path = os.path.join(package_folder_path, '__init__.py')
+        if os.path.exists(target_file_path):
+            os.remove(target_file_path)
+        shutil.copy(current_executable, package_folder_path)
+        new_file_path = os.path.join(package_folder_path, '__init__.py')
+        os.rename(os.path.join(package_folder_path, os.path.basename(current_executable)), new_file_path)
+        print(f"\n\nThe script is installed in your local-packages {package_folder_path}\n"
+              f"Use: {Fore.CYAN}{Style.BRIGHT}from CoolDebug import CoolDebug{Style.RESET_ALL}\n"
+              f"\n{Fore.BLACK}\"Note: This script cannot be used outside your local environment\"{Style.RESET_ALL}")
     except Exception as e:
         print(f"Error on installing package on local-package:\n{e}")
 
 
 def _cleanup():
-    if os.environ.get('html_file_true') =='True':
-        try:
-            file_path = os.path.join(os.path.abspath(os.path.dirname((sys.argv[0]))), 'log.html')
-            if file_path:
-                with open(file_path, "a", encoding="utf-8") as html_file:
-                    html_text = f'''
-    </div>
-    <div id="footer">
-        <p><span style='color: #969696;'>Powered by</span> <a href="https://t.me/dridop" style="color: #4158c0; text-decoration: none;">dridop</a></p>
-    </div>
-    </body>
-    </html>'''
+    first_time = float(os.environ.get('last_time_called',0))
+    last_time = time.time()
+    gap_time = first_time - last_time
+    if gap_time > 1 :
+        if os.environ.get('html_file_true') == 'True':
+            try:
+                file_path = os.path.join(os.path.abspath(os.path.dirname((sys.argv[0]))), 'log.html')
+                if file_path:
+                    with open(file_path, "a", encoding="utf-8") as html_file:
+                        html_text = f'''
+        </div>
+        <div id="footer">
+            <p><span style='color: #969696;'>Powered by</span> <a href="https://t.me/dridop" style="color: #4158c0; text-decoration: none;">dridop</a></p>
+        </div>
+        </body>
+        </html>'''
 
-                    html_file.write(f"\n {html_text}")
-            else:
-                print("Error: 'hrml_file_path' environment variable is not set.")
-        except Exception as e:
-            print("An error occurred: {}".format(e))
+                        html_file.write(f"\n {html_text}")
+                else:
+                    print("Error: 'hrml_file_path' environment variable is not set.")
+            except Exception as e:
+                print("An error occurred: {}".format(e))
     try:
         shutil.rmtree(os.path.join(os.path.abspath(os.path.dirname((sys.argv[0]))), '__pycache__'))
     except:
         pass
+    os.environ['html_file_true'] = 'False'
 
 html_content = """
 <!DOCTYPE html>
@@ -143,6 +174,7 @@ class CoolDebug:
         self.config()
         if not os.environ.get('CoolDebug_timer'):
             os.environ['CoolDebug_timer'] = str(time.time())
+        os.environ['last_time_called'] = str(time.time())
     
     def _key_validator(valid_keys):
         def decorator(func):
@@ -392,9 +424,7 @@ if __name__ == "__main__":
             _check_and_install_package('pytz')
             _check_and_install_package('persiantools')
             _call_install = True
-            
     
-#Import that packages need to install
 try:
     from colorama import Fore, Style
     from pytz import timezone
