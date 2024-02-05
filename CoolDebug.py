@@ -289,7 +289,7 @@ class CoolDebug:
         my_timezone = timezone(self.my_timezone)
         your_datetime = datetime.now(my_timezone)
         
-        msec, sec, min, hour, day, month = map(lambda x: str(x).zfill(2), [f"{your_datetime.strftime("%f")[:3]}",your_datetime.second, your_datetime.minute, your_datetime.hour, your_datetime.day, your_datetime.month])
+        msec, sec, min, hour, day, month = map(lambda x: str(x).zfill(2), [f"{your_datetime.strftime('%f')[:3]}",your_datetime.second, your_datetime.minute, your_datetime.hour, your_datetime.day, your_datetime.month])
         if my_timezone.zone == 'Asia/Tehran':
             jalali_date = JalaliDate.to_jalali(your_datetime.year, your_datetime.month, your_datetime.day)
             year, month, day = map(lambda x: str(x).zfill(2), [jalali_date.year, jalali_date.month, jalali_date.day])
