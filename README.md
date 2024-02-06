@@ -3,8 +3,6 @@
 </p>
 
 
-
-# CoolDebug
 With this program, you can capture more beautiful and better logs from your application.
 
 
