@@ -10,10 +10,10 @@ import difflib
 from functools import lru_cache
 import atexit
 
-_call_install = False
 
 
 
+__call_install = False
 
 def _is_package_installed(package_name):
     try:
@@ -89,33 +89,28 @@ def _copy_executable_to_lib_folder():
 
 
 def _cleanup():
-    first_time = float(os.environ.get('last_time_called',0))
-    last_time = time.time()
-    gap_time = first_time - last_time
-    if gap_time > 1 :
-        if os.environ.get('html_file_true') == 'True':
-            try:
-                file_path = os.path.join(os.path.abspath(os.path.dirname((sys.argv[0]))), 'log.html')
-                if file_path:
-                    with open(file_path, "a", encoding="utf-8") as html_file:
-                        html_text = f'''
-        </div>
-        <div id="footer">
-            <p><span style='color: #969696;'>Powered by</span> <a href="https://t.me/dridop" style="color: #4158c0; text-decoration: none;">dridop</a></p>
-        </div>
-        </body>
-        </html>'''
-
-                        html_file.write(f"\n {html_text}")
-                else:
-                    print("Error: 'hrml_file_path' environment variable is not set.")
-            except Exception as e:
-                print("An error occurred: {}".format(e))
+    try:
+        file_path = os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])), 'log.html')
+        if file_path:
+            with open(file_path, "r+", encoding="utf-8") as html_file:
+                content = html_file.read()
+                if not content.endswith("</html>"):
+                    html_text = '''
+</div>
+<div id="footer">
+<p><span style='color: #969696;'>Powered by</span> <a href="https://t.me/dridop" style="color: #4158c0; text-decoration: none;">dridop</a></p>
+</div>
+</body>
+</html>'''
+                    html_file.write(f"\n{html_text}")
+        else:
+            print("Error: 'file_path' variable is not set correctly.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
     try:
         shutil.rmtree(os.path.join(os.path.abspath(os.path.dirname((sys.argv[0]))), '__pycache__'))
     except:
         pass
-    os.environ['html_file_true'] = 'False'
 
 html_content = """
 <!DOCTYPE html>
@@ -174,19 +169,18 @@ class CoolDebug:
         self.config()
         if not os.environ.get('CoolDebug_timer'):
             os.environ['CoolDebug_timer'] = str(time.time())
-        os.environ['last_time_called'] = str(time.time())
     
-    def _key_validator(valid_keys):
+    def __key_validator(valid_keys):
         def decorator(func):
             def wrapper(self, **kwargs):
                 for key in kwargs.keys():
                     if key not in valid_keys:
                         closest_match = difflib.get_close_matches(key, valid_keys, n=1, cutoff=0.5)
                         if closest_match:
-                            print(f'{Fore.RED}{Style.BRIGHT}Error on your Codebug Config: {Style.RESET_ALL}\nInvalid key: {Fore.RED}{key}{Style.RESET_ALL}\nDid you mean: {closest_match[0]}')
+                            print(f'{Fore.RED}{Style.BRIGHT}Error on your CoolDebug Config: {Style.RESET_ALL}\nInvalid key: {Fore.RED}{key}{Style.RESET_ALL}\nDid you mean: {closest_match[0]}')
                             exit()
                         else:
-                            print(f'{Fore.RED}{Style.BRIGHT}Error on your Codebug Config: {Style.RESET_ALL}\nInvalid key : {key}')
+                            print(f'{Fore.RED}{Style.BRIGHT}Error on your CoolDebug Config: {Style.RESET_ALL}\nInvalid key : {key}')
                             exit()
                 return func(self, **kwargs)
             return wrapper
@@ -202,7 +196,7 @@ class CoolDebug:
         else:
             return "{:.2f} s".format(seconds)
         
-    @_key_validator(['print_log','my_timezone','show_debug','show_info','show_warning','show_error','show_critical','html_log','log_format'])
+    @__key_validator(['print_log','my_timezone','show_debug','show_info','show_warning','show_error','show_critical','html_log','log_format'])
     def config(self,
     print_log=True,
     my_timezone='Asia/Tehran',
@@ -267,15 +261,16 @@ class CoolDebug:
 #### `log.error('my error message')`
 
         """
-        self.show_debug = show_debug
-        self.show_info = show_info
-        self.show_warning = show_warning
-        self.show_error = show_error
-        self.show_critical = show_critical
+        self.__show_debug = show_debug
+        self.__show_info = show_info
+        self.__show_warning = show_warning
+        self.__show_error = show_error
+        self.__show_critical = show_critical
+        self.__print_log = print_log
+        self.__html_log = html_log
+        self.__my_timezone = my_timezone
+        self.__log_format = log_format
 
-        self.print_log = print_log
-        self.html_log = html_log
-        self.my_timezone = my_timezone
         if html_log == True:
             os.environ['html_file_true'] = 'True'
             html_file_path = os.path.join(os.path.abspath(os.path.dirname((sys.argv[0]))), 'log.html')
@@ -283,7 +278,7 @@ class CoolDebug:
             if not os.path.exists(html_file_path):
                 with open(html_file_path, "w+", encoding="utf-8") as html_file:
                     html_file.write(html_content)
-                if self.print_log:
+                if self.__print_log:
                     print('HTML file {} created successfully.'.format(html_file_path))
             else:
                 try:
@@ -300,25 +295,20 @@ class CoolDebug:
                                 file.truncate(end_position)
                 except Exception as e:
                     print(f"An error occurred: {e}")
-        self.log_format = log_format
-
-    
-    def clear_cache(self):
-        self._cache.clear()
     
     @lru_cache(maxsize=None)
-    def _common_functionality(self, message, function_name, tag):
+    def __common_functionality(self, message, function_name, tag):
         message = str(message)
         stack = inspect.stack()
-        outer_frame = stack[-1]
+        outer_frame = stack[2]
         line_number = str(outer_frame.lineno)
-        function = stack[2].function
+        function = outer_frame.function
         function = "main" if function == "<module>" else function
-        filename = os.path.basename(stack[2].filename)
+        filename = os.path.basename(outer_frame.filename)
         timer = float(os.environ.get('CoolDebug_timer'))
         counter = self.__format_time(time.time() - timer)
         function = function_name if function_name is not None else function
-        my_timezone = timezone(self.my_timezone)
+        my_timezone = timezone(self.__my_timezone)
         your_datetime = datetime.now(my_timezone)
         
         msec, sec, min, hour, day, month = map(lambda x: str(x).zfill(2), [f"{your_datetime.strftime('%f')[:3]}",your_datetime.second, your_datetime.minute, your_datetime.hour, your_datetime.day, your_datetime.month])
@@ -326,7 +316,7 @@ class CoolDebug:
             jalali_date = JalaliDate.to_jalali(your_datetime.year, your_datetime.month, your_datetime.day)
             year, month, day = map(lambda x: str(x).zfill(2), [jalali_date.year, jalali_date.month, jalali_date.day])
         try:
-            log_output = self.log_format.format(line_number=line_number, filename=filename, function=function, timer=counter, message=message, tag=tag, month=month, day=day, hour=hour, year=year, min=min, sec=sec,msec=msec)
+            log_output = self.__log_format.format(line_number=line_number, filename=filename, function=function, timer=counter, message=message, tag=tag, month=month, day=day, hour=hour, year=year, min=min, sec=sec,msec=msec)
         except Exception as e:
             valid_inputs = ['msec','line_number','filename','function','timer','month','day','hour','year','min','sec']
             closest_match = difflib.get_close_matches(str(e), valid_inputs, n=1, cutoff=0.5)
@@ -341,7 +331,7 @@ class CoolDebug:
 
 
     @lru_cache(maxsize=None)
-    def _insert_log_html(self, log_output, color, tag):
+    def __insert_log_html(self, log_output, color, tag):
         file_path = os.environ.get('html_file_path')
 
         if os.path.exists(file_path):
@@ -361,59 +351,64 @@ class CoolDebug:
             print(f'{file_path} is not exists')
     
     def debug(self, message='None', function_name=None):
+        "show debug type message with tag [Debug]"
         tag = "[Debug]"
         tag_name = "[Debug]"
-        log_output = self._common_functionality(message, function_name, tag)
-        if self.print_log != True or self.show_debug != True:
+        log_output = self.__common_functionality(message, function_name, tag)
+        if self.__print_log != True or self.__show_debug != True:
             pass
         else:
             print(log_output)
-        if self.html_log:
-            self._insert_log_html(log_output, '#6e6e6e', tag_name)
+        if self.__html_log:
+            self.__insert_log_html(log_output, '#6e6e6e', tag_name)
 
     def info(self, message='None', function_name=None):
+        "show info type message with tag [Info]"
         tag = "{}[Info]{}".format(Fore.GREEN, Style.RESET_ALL)
         tag_name = "[Info]"
-        log_output = self._common_functionality(message, function_name, tag)
-        if self.print_log != True or self.show_info != True:
+        log_output = self.__common_functionality(message, function_name, tag)
+        if self.__print_log != True or self.__show_info != True:
             pass
         else:
             print(log_output)
-        if self.html_log:
-            self._insert_log_html(log_output, '#008080', tag_name)
+        if self.__html_log:
+            self.__insert_log_html(log_output, '#008080', tag_name)
 
     def warning(self, message='None', function_name=None):
+        "show warning type message with tag [Warning]"
         tag = "{}[Warning]{}".format(Fore.YELLOW, Style.RESET_ALL)
         tag_name = "[Warning]"
-        log_output = self._common_functionality(message, function_name, tag)
-        if self.print_log != True or self.show_warning != True:
+        log_output = self.__common_functionality(message, function_name, tag)
+        if self.__print_log != True or self.__show_warning != True:
             pass
         else:
             print(log_output)
-        if self.html_log:
-            self._insert_log_html(log_output, '#db9404', tag_name)
+        if self.__html_log:
+            self.__insert_log_html(log_output, '#db9404', tag_name)
 
     def error(self, message='None', function_name=None):
+        "show error type message with tag [Error]"
         tag = "{}[Error]{}".format(Fore.RED, Style.RESET_ALL)
         tag_name = "[Error]"
-        log_output = self._common_functionality(message, function_name, tag)
-        if self.print_log != True or self.show_error != True:
+        log_output = self.__common_functionality(message, function_name, tag)
+        if self.__print_log != True or self.__show_error != True:
             pass
         else:
             print(log_output)
-        if self.html_log:
-            self._insert_log_html(log_output, '#db2f04', tag_name)
+        if self.__html_log:
+            self.__insert_log_html(log_output, '#db2f04', tag_name)
 
     def critical(self, message='None', function_name=None):
+        "show critical type message with tag [CRITICAL]"
         tag = "{}{}[CRITICAL]{}".format(Fore.RED, Style.BRIGHT, Style.RESET_ALL)
         tag_name = "[CRITICAL]"
-        log_output = self._common_functionality(message, function_name, tag)
-        if self.print_log != True or self.show_critical != True:
+        log_output = self.__common_functionality(message, function_name, tag)
+        if self.__print_log != True or self.__show_critical != True:
             pass
         else:
             print(log_output)
-        if self.html_log:
-            self._insert_log_html(log_output, '#000', tag_name)
+        if self.__html_log:
+            self.__insert_log_html(log_output, '#000', tag_name)
 
 
 
@@ -423,7 +418,7 @@ if __name__ == "__main__":
             _check_and_install_package('colorama')
             _check_and_install_package('pytz')
             _check_and_install_package('persiantools')
-            _call_install = True
+            __call_install = True
     
 try:
     from colorama import Fore, Style
@@ -432,5 +427,5 @@ try:
 except ModuleNotFoundError as e:
     print(f'{e}\ninstall it with pip or use --install option to Auto Install')
 
-if _call_install: _copy_executable_to_lib_folder()
+if __call_install: _copy_executable_to_lib_folder()
 atexit.register(_cleanup)
