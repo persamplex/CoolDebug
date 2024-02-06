@@ -89,24 +89,25 @@ def _copy_executable_to_lib_folder():
 
 
 def _cleanup():
-    try:
-        file_path = os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])), 'log.html')
-        if file_path:
-            with open(file_path, "r+", encoding="utf-8") as html_file:
-                content = html_file.read()
-                if not content.endswith("</html>"):
-                    html_text = '''
-</div>
-<div id="footer">
-<p><span style='color: #969696;'>Powered by</span> <a href="https://t.me/dridop" style="color: #4158c0; text-decoration: none;">dridop</a></p>
-</div>
-</body>
-</html>'''
-                    html_file.write(f"\n{html_text}")
-        else:
-            print("Error: 'file_path' variable is not set correctly.")
-    except Exception as e:
-        print(f"An error occurred: {e}")
+    if __call_install == False:
+        try:
+            file_path = os.path.join(os.path.abspath(os.path.dirname(sys.argv[0])), 'log.html')
+            if file_path:
+                with open(file_path, "r+", encoding="utf-8") as html_file:
+                    content = html_file.read()
+                    if not content.endswith("</html>"):
+                        html_text = '''
+    </div>
+    <div id="footer">
+    <p><span style='color: #969696;'>Powered by</span> <a href="https://t.me/dridop" style="color: #4158c0; text-decoration: none;">dridop</a></p>
+    </div>
+    </body>
+    </html>'''
+                        html_file.write(f"\n{html_text}")
+            else:
+                print("Error: 'file_path' variable is not set correctly.")
+        except Exception as e:
+            print(f"An error occurred: {e}")
     try:
         shutil.rmtree(os.path.join(os.path.abspath(os.path.dirname((sys.argv[0]))), '__pycache__'))
     except:
@@ -419,7 +420,6 @@ if __name__ == "__main__":
             _check_and_install_package('pytz')
             _check_and_install_package('persiantools')
             __call_install = True
-            exit()
     
 try:
     from colorama import Fore, Style
