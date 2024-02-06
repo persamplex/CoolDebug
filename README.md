@@ -1,3 +1,4 @@
+![Logo](https://uploadkon.ir/uploads/d05006_24Black-White-Minimalist-Business-Logo.jpg)
 
 # CoolDebug
 With this program, you can capture more beautiful and better logs from your application.
