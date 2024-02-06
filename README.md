@@ -1,4 +1,8 @@
-![Logo](https://uploadkon.ir/uploads/d05006_24Black-White-Minimalist-Business-Logo.jpg)
+<p align="center">
+  <img src="https://uploadkon.ir/uploads/d05006_24Black-White-Minimalist-Business-Logo.jpg" alt="Logo">
+</p>
+
+
 
 # CoolDebug
 With this program, you can capture more beautiful and better logs from your application.
