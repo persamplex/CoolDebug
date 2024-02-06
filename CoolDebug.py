@@ -419,6 +419,7 @@ if __name__ == "__main__":
             _check_and_install_package('pytz')
             _check_and_install_package('persiantools')
             __call_install = True
+            exit()
     
 try:
     from colorama import Fore, Style
