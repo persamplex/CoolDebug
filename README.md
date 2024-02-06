@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="http://91.107.146.211:800/" alt="Logo" width="1000">
+  <img src="http://quto.iran13.xyz:2095" alt="quto" width="1000">
 </p>
 
 
