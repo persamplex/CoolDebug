@@ -5,7 +5,7 @@
   <img src="http://91.107.146.211:800/" alt="Logo">
 </p>
 
-$$\mathscr { keep \ smiling}$$
+$$\mathscr { Random \ Quote }$$
 
 
 With this program, you can capture more beautiful and better logs from your application.
