@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="http://91.107.146.211:800/" alt="Logo" width="400">
+  <img src="http://91.107.146.211:800/" alt="Logo" width="600">
 </p>
 
 
