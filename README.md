@@ -1,11 +1,10 @@
 <p align="center">
   <img src="https://uploadkon.ir/uploads/9a4806_24Black-White-Minimalist-Business-Logo.jpg" alt="Logo">
 </p>
-<p align="center">
-  <img src="http://91.107.146.211:800/" alt="Logo">
-</p>
 
-$$\mathscr { Random \ Quote }$$
+<p align="center">
+  <img src="http://91.107.146.211:800/" alt="Logo" width="200">
+</p>
 
 
 With this program, you can capture more beautiful and better logs from your application.
