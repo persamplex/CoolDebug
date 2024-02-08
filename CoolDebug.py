@@ -166,6 +166,7 @@ h1 {
 """
 
 class CoolDebug:
+    from colorama import Fore, Style
     def __init__(self):
         self.config()
         if not os.environ.get('CoolDebug_timer'):
@@ -420,7 +421,14 @@ if __name__ == "__main__":
             _check_and_install_package('pytz')
             _check_and_install_package('persiantools')
             __call_install = True
-    
+
+            
+if __name__ != "__main__":
+    _check_and_install_package('colorama')
+    _check_and_install_package('pytz')
+    _check_and_install_package('persiantools')
+
+
 try:
     from colorama import Fore, Style
     from pytz import timezone
