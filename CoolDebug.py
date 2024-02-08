@@ -107,7 +107,7 @@ def _cleanup():
             else:
                 print("Error: 'file_path' variable is not set correctly.")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            pass
     try:
         shutil.rmtree(os.path.join(os.path.abspath(os.path.dirname((sys.argv[0]))), '__pycache__'))
     except:
