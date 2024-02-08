@@ -422,11 +422,11 @@ if __name__ == "__main__":
             _check_and_install_package('persiantools')
             __call_install = True
 
-            
-if __name__ != "__main__":
-    _check_and_install_package('colorama')
-    _check_and_install_package('pytz')
-    _check_and_install_package('persiantools')
+
+# if __name__ != "__main__":
+_check_and_install_package('colorama')
+_check_and_install_package('pytz')
+_check_and_install_package('persiantools')
 
 
 try:
