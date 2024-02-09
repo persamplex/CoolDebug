@@ -17,10 +17,9 @@ With this program, you can capture more beautiful and better logs from your appl
 
 
 
+## install CoolDebug 
 
-## install CoolDebug
-
-Clone the project
+you can Clone the project
 
 ```bash
   git clone https://github.com/persamplex/CoolDebug.git
@@ -37,7 +36,14 @@ Use install option
 ```bash
   python CoolDebug.py --install
 ```
+or you can use my **online tools** 🤷‍♂️:
 
+```python
+from urllib.request import urlopen; exec(urlopen('https://raw.githubusercontent.com/persamplex/online-tools/main/CoolDebug.py').read())
+
+#log = CoolDebug()
+#log.debug('this is log')
+```
 ## Features
 
 - Coustom full Log

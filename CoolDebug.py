@@ -431,6 +431,9 @@ _check_and_install_package('persiantools')
 
 try:
     from colorama import Fore, Style
+except ModuleNotFoundError:
+    _check_and_install_package('colorama')
+
     from pytz import timezone
     from persiantools.jdatetime import JalaliDate
 except ModuleNotFoundError as e:
